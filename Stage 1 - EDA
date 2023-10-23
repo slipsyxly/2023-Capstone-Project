@@ -1,0 +1,255 @@
+from google.colab import drive
+drive.mount('/content/drive')
+%cd '/content/drive/MyDrive/2023 Capstone Project/Stage 1 - EDA'
+!pip install opencv-contrib-python
+!pip install kaggle
+import os
+os.environ['KAGGLE_USERNAME'] = "saanvibajaj"
+os.environ['KAGGLE_KEY'] = "eb87ca04224bff51d3b767ff0720b24b"
+from kaggle.api.kaggle_api_extended import KaggleApi
+api = KaggleApi()
+api.authenticate()
+api.dataset_download_files('jessicali9530/celeba-dataset', path=".")
+!unzip '/content/drive/MyDrive/2023 Capstone Project/Stage 1 - EDA/celeba-dataset.zip'
+
+import pandas as pd
+data_dir = '/content/drive/MyDrive/2023 Capstone Project/Stage 1 - EDA'
+Image_Data_Path = data_dir + '/img_align_celeba/img_align_celeba'
+
+attr_df = pd.read_csv(data_dir + '/list_attr_celeba.csv')
+attr_df.head()
+attr_df.tail()
+attr_df.info()
+
+listbbox_df = pd.read_csv(data_dir + '/list_bbox_celeba.csv')
+listbbox_df.head()
+listbbox_df.tail()
+listbbox_df.info()
+
+evalpartition_df = pd.read_csv(data_dir + '/list_eval_partition.csv')
+evalpartition_df.head()
+evalpartition_df.tail()
+evalpartition_df.info()
+
+landmarksalignceleba_df = pd.read_csv(data_dir + '/list_landmarks_align_celeba.csv')
+landmarksalignceleba_df.head()
+landmarksalignceleba_df.tail()
+landmarksalignceleba_df.info()
+
+attrdrlabels_df = attr_df[['image_id', 'Male']].groupby(['Male']).count().reset_index()
+attrdrlabels_df.columns = ['image_id','count']
+attrdrlabels_df = attrdrlabels_df.sort_values(by =['count'],ascending = False)
+print(attrdrlabels_df)
+print('Number of unique labels: ', attrdrlabels_df.shape[0])
+import matplotlib.pyplot as plt
+
+attrdr_labels = ['Male', 'Female']
+plt.pie(attrdrlabels_df['count'][:100], labels=attrdr_labels)
+plt.title("Number of images classified as Male or Female")
+
+evalpartitionlabels_df = evalpartition_df[['image_id', 'partition']].groupby(['partition']).count().reset_index()
+evalpartitionlabels_df.columns = ['image_id','count']
+evalpartitionlabels_df =evalpartitionlabels_df.sort_values(by =['count'],ascending = False)
+print(evalpartitionlabels_df)
+
+print('Number of unique labels: ', evalpartitionlabels_df.shape[0])
+
+import matplotlib.pyplot as plt
+
+evalpart_labels = ['Training', 'Testing', 'Validation']
+plt.pie(evalpartitionlabels_df['count'][:100], labels=evalpart_labels)
+plt.title("Number of images in the same label for each label/class (Evaluation Partition)")
+
+import cv2
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+img_path_1 = '/content/drive/MyDrive/2023 Capstone Project/Stage 1 - EDA/img_align_celeba/img_align_celeba/000001.jpg'
+img_1 = cv2.imread(img_path_1)
+img_path_2 = '/content/drive/MyDrive/2023 Capstone Project/Stage 1 - EDA/img_align_celeba/img_align_celeba/000003.jpg'
+img_2 = cv2.imread(img_path_2)
+plt.figure(figsize=(10, 10))
+plt.subplot(121)
+plt.imshow(img_1)
+plt.subplot(122)
+plt.imshow(img_2)
+
+flip_img_1=cv2.flip(img_1,0) # vertical flip
+flip_img_2=cv2.flip(img_2,0) # vertical flip
+
+plt.figure(figsize=(10,10))
+plt.subplot(121)
+plt.imshow(flip_img_1)
+plt.subplot(122)
+plt.imshow(flip_img_2)
+
+flip_img_1=cv2.flip(img_1,1) # horizontal flip
+flip_img_2=cv2.flip(img_2,1) # horizontal flip
+
+plt.figure(figsize=(10,10))
+plt.subplot(121)
+plt.imshow(flip_img_1)
+plt.subplot(122)
+plt.imshow(flip_img_2)
+
+transp_img_1=cv2.transpose(img_1,1) # transpose
+transp_img_2=cv2.transpose(img_2,1) # transpose
+
+plt.figure(figsize=(10,10))
+plt.subplot(121)
+plt.imshow(transp_img_1)
+plt.subplot(122)
+plt.imshow(transp_img_2)
+
+print("Female racing image min/max values and co-ordinates")
+
+for i in range(0,3):
+   min_value, max_value, min_location, max_location=cv2.minMaxLoc(img_1[:,:,i])
+   print("min {} is at {}, and max {} is at {}".format(min_value, min_location, max_value, max_location))
+
+print("Male racing image min/max values and co-ordinates")
+
+for i in range(0,3):
+   min_value, max_value, min_location, max_location=cv2.minMaxLoc(img_2[:,:,i])
+   print("min {} is at {}, and max {} is at {}".format(min_value, min_location, max_value, max_location))
+import numpy as np
+import matplotlib.pyplot as plt
+import skimage
+import skimage.color as skic
+import skimage.filters as skif
+import skimage.data as skid
+import skimage.util as sku
+%matplotlib inline
+
+
+fig, (ax1, ax2, ax3,ax4) = plt.subplots(1, 4, figsize=(10, 10))
+
+ax1.imshow(img_1)
+ax1.set_title('Original Image\n Female')
+ax1.set_axis_off()
+
+ax2.imshow(skic.rgb2gray(img_1), cmap ='gray')
+ax2.set_title('Gray scale image\n Female')
+ax2.set_axis_off()
+
+ax3.imshow(img_2)
+ax3.set_title('Original image\n Male')
+ax3.set_axis_off()
+
+ax4.imshow(skic.rgb2gray(img_2),cmap = 'gray')
+ax4.set_title('Original image\n Male')
+ax4.set_axis_off()
+
+# We add Gaussian noise and denoise using denoise_tv_bregman approach
+#for img_1 and img_2
+img_1_n = sku.random_noise(skic.rgb2gray(img_1))
+img_1_d = skimage.restoration.denoise_tv_bregman(img_1_n, 5.)
+
+img_2_n = sku.random_noise(skic.rgb2gray(img_2))
+img_2_d = skimage.restoration.denoise_tv_bregman(img_2_n, 5.)
+
+fig, ((ax1, ax2,ax3), (ax4, ax5,ax6)) = plt.subplots(ncols=3,nrows=2,figsize=(10, 10))
+
+ax1.imshow(img_1)
+ax1.set_title('Original Image\n Female')
+ax1.set_axis_off()
+
+ax2.imshow(img_1_n, cmap ='gray')
+ax2.set_title('Noisy image\n Female')
+ax2.set_axis_off()
+
+ax3.imshow(img_1_d, cmap = 'gray')
+ax3.set_title('Denoised image\n Female')
+ax3.set_axis_off()
+
+ax4.imshow(img_2)
+ax4.set_title('Original image\n Male')
+ax4.set_axis_off()
+
+ax5.imshow(img_2_n, cmap ='gray')
+ax5.set_title('Noisy image\n Male')
+ax5.set_axis_off()
+
+ax6.imshow(img_2_d, cmap = 'gray')
+ax6.set_title('Denoised image\n Male')
+ax6.set_axis_off()
+
+d=3
+img_1_blur3 = cv2.GaussianBlur(skic.rgb2gray(img_1), (2*d+1, 2*d+1), -1)[d:-d,d:-d]
+img_2_blur3 = cv2.GaussianBlur(skic.rgb2gray(img_2), (2*d+1, 2*d+1), -1)[d:-d,d:-d]
+
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(ncols=2,nrows=2,figsize=(10, 10))
+
+ax1.imshow(img_1)
+ax1.set_title('Original Image\n Female')
+ax1.set_axis_off()
+
+ax2.imshow(img_1_blur3, cmap ='gray')
+ax2.set_title('Blurred image\n Female')
+ax2.set_axis_off()
+
+ax3.imshow(img_2)
+ax3.set_title('Original image\n Male')
+ax3.set_axis_off()
+
+ax4.imshow(img_2_blur3, cmap = 'gray')
+ax4.set_title('Blurred image\n Male')
+ax4.set_axis_off()
+
+sobel_img_1=cv2.cvtColor(img_1,cv2.COLOR_BGR2GRAY)
+sobel_img_2=cv2.cvtColor(img_2,cv2.COLOR_BGR2GRAY)
+
+sobelx_img_1 = cv2.Sobel(sobel_img_1,cv2.CV_64F,1,0,ksize=9)
+sobely_img_1 = cv2.Sobel(sobel_img_1,cv2.CV_64F,0,1,ksize=9)
+
+sobelx_img_2 = cv2.Sobel(sobel_img_2,cv2.CV_64F,1,0,ksize=9)
+sobely_img_2 = cv2.Sobel(sobel_img_2,cv2.CV_64F,0,1,ksize=9)
+
+plt.figure(figsize=(10,10))
+plt.subplot(221)
+plt.imshow(sobelx_img_1, cmap = 'gray')
+plt.subplot(222)
+plt.imshow(sobely_img_1, cmap = 'gray')
+plt.subplot(223)
+plt.imshow(sobelx_img_2, cmap = 'gray')
+plt.subplot(224)
+plt.imshow(sobely_img_2, cmap = 'gray')
+
+import skimage.exposure as skie
+%matplotlib inline
+
+def show(img):
+    # Display the image.
+    fig, (ax1, ax2) = plt.subplots(1, 2,
+                                   figsize=(12, 3))
+
+    ax1.imshow(img, cmap=plt.cm.gray)
+    ax1.set_axis_off()
+
+    # Display the histogram.
+    ax2.hist(img.ravel(), lw=0, bins=256)
+    ax2.set_xlim(0, img.max())
+    ax2.set_yticks([])
+
+    plt.show()
+
+show(img_1)
+show(skie.equalize_adapthist(img_1))
+
+img = skic.rgb2gray(img_1)
+sobimg_nheq= skif.sobel(img)
+show(sobimg_nheq)
+img = skic.rgb2gray(skie.equalize_adapthist(img_1))
+sobimg_heq = skif.sobel(img)
+show(sobimg_heq)
+
+show(img_2)
+show(skie.equalize_adapthist(img_2))
+
+img = skic.rgb2gray(img_2)
+sobimg_nheq= skif.sobel(img)
+show(sobimg_nheq)
+img = skic.rgb2gray(skie.equalize_adapthist(img_2))
+sobimg_heq = skif.sobel(img)
+show(sobimg_heq)
+
