@@ -12,3 +12,4 @@ Stage 3 Deployment details:
 - A .py file will be within this repository. It can be run using any Python environment that has the libraries installed.
 - The Keras model and the labels text obtained in Stage 2 PDA have also been linked as it will be used to run the .py file.
 - The test image path used is also linked in this repository as well.
+- The code obtained from exporting the model is in a seperate .ipynb file as reference.
